@@ -33,7 +33,8 @@ show_menu() {
     echo "3. Configure Git user"
     echo "4. List existing SSH keys"
     echo "5. Test SSH connection"
-    echo "6. Exit"
+    echo "6. Delete an SSH key"
+    echo "7. Exit"
 }
 
 # Rest of the functions remain the same as before
@@ -139,10 +140,35 @@ show_instructions() {
     echo "3. Paste your public key and click 'Add key'"
 }
 
+# Function to delete an SSH key
+delete_key() {
+    echo -e "\n${BLUE}=== Delete SSH Key ===${NC}"
+    list_keys
+
+    read -p "Enter the name of the key you want to delete: " key_to_delete
+
+    key_path="$HOME/.ssh/${key_to_delete}"
+    if [ -f "$key_path" ] && [[ $key_to_delete == *"_"* ]]; then
+        # Remove key from SSH agent
+        ssh-add -d "$key_path"
+
+        # Remove key from SSH config
+        sed -i.bak "/Host.*${key_to_delete//\//\\/}/d" "$HOME/.ssh/config"
+
+        # Remove key files
+        rm "$key_path"
+        rm "${key_path}.pub"
+
+        echo -e "${GREEN}SSH key '${key_to_delete}' deleted successfully!${NC}"
+    else
+        echo -e "${RED}Invalid key name or key not found.${NC}"
+    fi
+}
+
 # Main loop
 while true; do
     show_menu
-    read -p "Enter choice (1-6): " choice
+    read -p "Enter choice (1-7): " choice
 
     case $choice in
         1) generate_ssh_key ;;
@@ -150,7 +176,8 @@ while true; do
         3) configure_git ;;
         4) list_keys ;;
         5) test_connection ;;
-        6) echo -e "${GREEN}Goodbye!${NC}"; exit 0 ;;
+        6) delete_key ;;
+        7) echo -e "${GREEN}Goodbye!${NC}"; exit 0 ;;
         *) echo -e "${RED}Invalid choice${NC}" ;;
     esac
 done
